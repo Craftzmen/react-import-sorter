@@ -148,3 +148,6 @@ node dist/bin/cli.js App.tsx
 ## License
 
 MIT
+
+___
+Built with ♥️ by [Craftzmen](https://github.com/Craftzmen)
