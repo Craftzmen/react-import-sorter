@@ -47,9 +47,21 @@ jobs:
         working-directory: vscode-extension
         run: vsce package
 
+      - name: Validate Marketplace PAT
+        env:
+          VSCODE_MARKETPLACE_TOKEN: ${{ secrets.VSCODE_MARKETPLACE_TOKEN }}
+        run: |
+          if [ -z "$VSCODE_MARKETPLACE_TOKEN" ]; then
+            echo "Missing required secret: VSCODE_MARKETPLACE_TOKEN"
+            echo "Add it in GitHub: Settings -> Secrets and variables -> Actions"
+            exit 1
+          fi
+
       - name: Publish to Marketplace
         working-directory: vscode-extension
-        run: vsce publish -p ${{ secrets.VSCODE_MARKETPLACE_TOKEN }}
+        env:
+          VSCODE_MARKETPLACE_TOKEN: ${{ secrets.VSCODE_MARKETPLACE_TOKEN }}
+        run: vsce publish -p "$VSCODE_MARKETPLACE_TOKEN"
 
       - name: Upload Release Asset
         uses: softprops/action-gh-release@v1
