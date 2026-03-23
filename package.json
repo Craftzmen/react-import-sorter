@@ -2,13 +2,41 @@
   "name": "react-import-sorter",
   "version": "1.1.0",
   "description": "Opinionated import sorter for React apps",
-  "main": "index.js",
+  "main": "dist/src/index.js",
+  "types": "dist/src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/src/index.d.ts",
+      "require": "./dist/src/index.js",
+      "default": "./dist/src/index.js"
+    },
+    "./prettier-plugin": {
+      "types": "./dist/src/prettierPlugin.d.ts",
+      "require": "./dist/src/prettierPlugin.js",
+      "default": "./dist/src/prettierPlugin.js"
+    },
+    "./eslint-plugin": {
+      "types": "./dist/src/eslintPlugin.d.ts",
+      "require": "./dist/src/eslintPlugin.js",
+      "default": "./dist/src/eslintPlugin.js"
+    }
+  },
   "bin": {
     "react-import-sorter": "dist/bin/cli.js"
   },
+  "files": [
+    "dist",
+    "README.md",
+    "CHANGELOG.md"
+  ],
   "scripts": {
-    "build": "tsc",
-    "dev": "ts-node bin/cli.ts"
+    "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
+    "build": "npm run clean && tsc",
+    "dev": "ts-node bin/cli.ts",
+    "test": "npm run build && vitest run",
+    "test:watch": "vitest",
+    "release:check": "npm run build && npm test && npm pack --dry-run",
+    "release:pack": "npm pack"
   },
   "keywords": [
     "react",
@@ -19,13 +47,21 @@
   "author": "Craftzmen",
   "license": "MIT",
   "type": "commonjs",
+  "peerDependencies": {
+    "eslint": ">=8.0.0",
+    "prettier": "^3.0.0"
+  },
   "dependencies": {
     "@babel/parser": "^7.29.2",
     "recast": "^0.23.11"
   },
   "devDependencies": {
+    "@types/eslint": "^8.56.0",
     "@types/node": "^25.5.0",
+    "eslint": "^8.56.0",
+    "prettier": "^3.8.1",
     "ts-node": "^10.9.2",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.0"
   }
 }

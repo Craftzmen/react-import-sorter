@@ -33,6 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.sortImportsResult = sortImportsResult;
 exports.sortImports = sortImports;
 const recast = __importStar(require("recast"));
 const babelParser = __importStar(require("@babel/parser"));
@@ -124,10 +125,14 @@ function isReactFrameworkImport(source) {
 function isNextFrameworkImport(source) {
     return /^next(\/.*)?$/.test(source);
 }
-function sortImports(code, options = {}) {
-    const frameworkPriority = options.frameworkPriority && options.frameworkPriority.length > 0
-        ? options.frameworkPriority
-        : DEFAULT_FRAMEWORK_PRIORITY;
+function resolveFrameworkPriority(options) {
+    if (!options.frameworkPriority || options.frameworkPriority.length === 0) {
+        return DEFAULT_FRAMEWORK_PRIORITY;
+    }
+    return options.frameworkPriority;
+}
+function buildSortedCode(code, frameworkPriority) {
+    const diagnostics = [];
     const ast = recast.parse(code, {
         parser: {
             parse(source) {
@@ -155,6 +160,19 @@ function sortImports(code, options = {}) {
             rest.push(node);
         }
     });
+    if (imports.length === 0) {
+        diagnostics.push({
+            severity: "info",
+            code: "NO_IMPORTS",
+            message: "No import declarations found; file left unchanged.",
+        });
+        return {
+            code,
+            diagnostics,
+            importCount: 0,
+            groupCount: 0,
+        };
+    }
     const groupedImports = new Map();
     for (const importNode of imports) {
         const groupKey = getImportGroup(importNode);
@@ -195,10 +213,66 @@ function sortImports(code, options = {}) {
     ast.program.body = rest;
     const restCode = recast.print(ast).code.trimStart();
     if (!importsCode) {
-        return restCode;
+        return {
+            code: restCode,
+            diagnostics,
+            importCount: imports.length,
+            groupCount: importBlocks.length,
+        };
     }
     if (!restCode) {
-        return `${importsCode}\n`;
+        return {
+            code: `${importsCode}\n`,
+            diagnostics,
+            importCount: imports.length,
+            groupCount: importBlocks.length,
+        };
     }
-    return `${importsCode}\n\n${restCode}`;
+    return {
+        code: `${importsCode}\n\n${restCode}`,
+        diagnostics,
+        importCount: imports.length,
+        groupCount: importBlocks.length,
+    };
+}
+function sortImportsResult(code, options = {}) {
+    const frameworkPriority = resolveFrameworkPriority(options);
+    try {
+        const sorted = buildSortedCode(code, frameworkPriority);
+        return {
+            code: sorted.code,
+            changed: sorted.code !== code,
+            diagnostics: sorted.diagnostics,
+            metadata: {
+                importCount: sorted.importCount,
+                groupCount: sorted.groupCount,
+            },
+        };
+    }
+    catch (error) {
+        const message = error instanceof Error ? error.message : "Unknown parsing error";
+        const diagnostic = {
+            severity: "error",
+            code: "PARSE_ERROR",
+            message,
+        };
+        if (options.throwOnParseError) {
+            throw error;
+        }
+        return {
+            code,
+            changed: false,
+            diagnostics: [diagnostic],
+            metadata: {
+                importCount: 0,
+                groupCount: 0,
+            },
+        };
+    }
+}
+function sortImports(code, options = {}) {
+    return sortImportsResult(code, {
+        ...options,
+        throwOnParseError: options.throwOnParseError ?? true,
+    }).code;
 }

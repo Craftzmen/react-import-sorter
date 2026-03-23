@@ -10,10 +10,26 @@ const src_1 = require("../src");
 const args = process.argv.slice(2);
 let filePath;
 let frameworkPriority;
+let explicitConfigPath;
+let checkMode = false;
+let dryRun = false;
+let quiet = false;
 for (const arg of args) {
     if (arg === '--help' || arg === '-h') {
-        console.log('Usage: react-import-sorter <file> [--framework-priority=next,react]');
+        console.log('Usage: react-import-sorter <file> [--framework-priority=next,react] [--config=path] [--check] [--dry-run] [--quiet]');
         process.exit(0);
+    }
+    if (arg === '--check') {
+        checkMode = true;
+        continue;
+    }
+    if (arg === '--dry-run') {
+        dryRun = true;
+        continue;
+    }
+    if (arg === '--quiet') {
+        quiet = true;
+        continue;
     }
     if (arg.startsWith('--framework-priority=')) {
         const rawValue = arg.split('=')[1] || '';
@@ -22,6 +38,16 @@ for (const arg of args) {
             .map((item) => item.trim())
             .filter(Boolean);
         frameworkPriority = parsed.length > 0 ? parsed : undefined;
+        continue;
+    }
+    if (arg.startsWith('--config=')) {
+        const rawValue = arg.split('=')[1] || '';
+        const trimmed = rawValue.trim();
+        if (!trimmed) {
+            console.error('Option --config requires a file path.');
+            process.exit(1);
+        }
+        explicitConfigPath = trimmed;
         continue;
     }
     if (arg.startsWith('--')) {
@@ -79,6 +105,64 @@ if (!fs_1.default.existsSync(absPath)) {
     }
 }
 const code = fs_1.default.readFileSync(absPath, 'utf-8');
-const output = (0, src_1.sortImports)(code, { frameworkPriority });
-fs_1.default.writeFileSync(absPath, output);
-console.log("Imports Sorted!");
+const resolvedConfig = (0, src_1.resolveSorterConfig)({
+    cwd: path_1.default.dirname(absPath),
+    explicitConfigPath,
+});
+const configErrors = resolvedConfig.diagnostics.filter((diagnostic) => diagnostic.severity === 'error');
+if (configErrors.length > 0) {
+    configErrors.forEach((diagnostic) => {
+        console.error(`Error: ${diagnostic.message}`);
+    });
+    process.exit(1);
+}
+if (!quiet) {
+    resolvedConfig.diagnostics
+        .filter((diagnostic) => diagnostic.severity !== 'error')
+        .forEach((diagnostic) => {
+        console.warn(`Warning: ${diagnostic.message}`);
+    });
+}
+const mergedFrameworkPriority = frameworkPriority ?? resolvedConfig.config.frameworkPriority;
+const throwOnParseError = resolvedConfig.config.throwOnParseError ?? false;
+const result = (0, src_1.sortImportsResult)(code, {
+    frameworkPriority: mergedFrameworkPriority,
+    throwOnParseError,
+});
+const hasErrors = result.diagnostics.some((diagnostic) => diagnostic.severity === 'error');
+if (hasErrors) {
+    result.diagnostics
+        .filter((diagnostic) => diagnostic.severity === 'error')
+        .forEach((diagnostic) => {
+        console.error(`Error: ${diagnostic.message}`);
+    });
+    process.exit(1);
+}
+if (dryRun) {
+    process.stdout.write(result.code);
+    if (!result.code.endsWith('\n')) {
+        process.stdout.write('\n');
+    }
+    process.exit(result.changed ? 1 : 0);
+}
+if (checkMode) {
+    if (!quiet) {
+        if (result.changed) {
+            console.log(`Imports are not sorted in ${path_1.default.relative(process.cwd(), absPath)}.`);
+        }
+        else {
+            console.log(`Imports already sorted in ${path_1.default.relative(process.cwd(), absPath)}.`);
+        }
+    }
+    process.exit(result.changed ? 1 : 0);
+}
+if (!result.changed) {
+    if (!quiet) {
+        console.log('Imports already sorted.');
+    }
+    process.exit(0);
+}
+fs_1.default.writeFileSync(absPath, result.code);
+if (!quiet) {
+    console.log('Imports sorted!');
+}

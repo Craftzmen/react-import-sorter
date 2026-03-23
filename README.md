@@ -50,6 +50,44 @@ react-import-sorter src/App.tsx --framework-priority=next,react,react-dom
 
 This controls the order used for framework imports inside framework-related groups.
 
+You can also set this in config files instead of passing it every time.
+
+### Load config from a specific path
+
+```bash
+react-import-sorter src/App.tsx --config=./config/react-import-sorter.json
+```
+
+The CLI merges options with this precedence:
+
+1. Defaults
+2. Project config
+3. CLI flags
+
+### Check mode (CI friendly)
+
+```bash
+react-import-sorter src/App.tsx --check
+```
+
+Exits with code `1` if imports need sorting, otherwise exits with code `0`.
+
+### Dry run mode
+
+```bash
+react-import-sorter src/App.tsx --dry-run
+```
+
+Prints the sorted output to stdout without modifying the file.
+
+### Quiet mode
+
+```bash
+react-import-sorter src/App.tsx --quiet
+```
+
+Suppresses non-error CLI output.
+
 ### Help
 
 ```bash
@@ -130,13 +168,88 @@ const sorted = sortImports(sourceCode, {
 })
 ```
 
+For richer integration, use the result API:
+
+```ts
+import { sortImportsResult } from 'react-import-sorter'
+
+const result = sortImportsResult(sourceCode, {
+  frameworkPriority: ['next', 'react', 'react-dom']
+})
+
+if (result.changed) {
+  console.log('Imports were updated')
+}
+
+for (const diagnostic of result.diagnostics) {
+  console.log(`[${diagnostic.severity}] ${diagnostic.message}`)
+}
+```
+
 Type:
 
 ```ts
 type SortImportsOptions = {
   frameworkPriority?: string[]
+  throwOnParseError?: boolean
+}
+
+type SortResult = {
+  code: string
+  changed: boolean
+  diagnostics: {
+    severity: 'error' | 'warning' | 'info'
+    message: string
+    code?: string
+  }[]
+  metadata: {
+    importCount: number
+    groupCount: number
+  }
 }
 ```
+
+## Configuration
+
+Supported discovery locations (first match wins):
+
+1. `.react-import-sorter.json`
+2. `react-import-sorter.config.json`
+3. `package.json` key: `reactImportSorter` (or `react-import-sorter`)
+
+Example `.react-import-sorter.json`:
+
+```json
+{
+  "frameworkPriority": ["next", "react", "react-dom"],
+  "throwOnParseError": false
+}
+```
+
+## Prettier Plugin
+
+This package exposes a Prettier plugin bridge at `react-import-sorter/prettier-plugin`.
+
+Install Prettier in your project:
+
+```bash
+npm i -D prettier react-import-sorter
+```
+
+Then configure Prettier:
+
+```json
+{
+  "plugins": ["react-import-sorter/prettier-plugin"],
+  "importSorterFrameworkPriority": "next,react,react-dom",
+  "importSorterThrowOnParseError": false
+}
+```
+
+Supported plugin options:
+
+1. `importSorterFrameworkPriority`: comma-separated framework priority.
+2. `importSorterThrowOnParseError`: if true, throw on parse errors during preprocessing.
 
 ## Development
 
@@ -144,6 +257,20 @@ type SortImportsOptions = {
 npm run build
 node dist/bin/cli.js App.tsx
 ```
+
+Run tests:
+
+```bash
+npm test
+```
+
+Release readiness check:
+
+```bash
+npm run release:check
+```
+
+For contributor workflow, semver policy, and release checklist, see `CONTRIBUTING.md`.
 
 ## License
 
