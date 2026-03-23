@@ -69,17 +69,21 @@ const rule: Rule.RuleModule = {
 						const end = lastImport.range[1];
 
 						// Extract the sorted portion from result
-						const originalLines = code.split('\n');
 						const sortedLines = result.code.split('\n');
 
 						// Find the range of imports in sorted code
 						let sortedImportsText = '';
+						let inImportBlock = false;
 						for (let i = 0; i < sortedLines.length; i++) {
 							const line = sortedLines[i];
 							if (line.match(/^import /)) {
+								inImportBlock = true;
 								sortedImportsText += line + '\n';
-							} else if (sortedImportsText && line.trim() === '') {
-								// Empty line after imports
+							} else if (inImportBlock && line.trim() === '') {
+								// Allow empty lines within the import block (e.g., between groups)
+								sortedImportsText += line + '\n';
+							} else if (inImportBlock) {
+								// First non-import, non-empty line after imports: end of import block
 								break;
 							}
 						}

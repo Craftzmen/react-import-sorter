@@ -271,5 +271,8 @@ function sortImportsResult(code, options = {}) {
     }
 }
 function sortImports(code, options = {}) {
-    return sortImportsResult(code, options).code;
+    return sortImportsResult(code, {
+        ...options,
+        throwOnParseError: options.throwOnParseError ?? true,
+    }).code;
 }
