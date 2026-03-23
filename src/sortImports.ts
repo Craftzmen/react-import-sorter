@@ -9,6 +9,25 @@ type ImportDeclarationNode = {
 
 export type SortImportsOptions = {
   frameworkPriority?: string[];
+  throwOnParseError?: boolean;
+};
+
+export type SortDiagnosticSeverity = "error" | "warning" | "info";
+
+export type SortDiagnostic = {
+  severity: SortDiagnosticSeverity;
+  message: string;
+  code?: string;
+};
+
+export type SortResult = {
+  code: string;
+  changed: boolean;
+  diagnostics: SortDiagnostic[];
+  metadata: {
+    importCount: number;
+    groupCount: number;
+  };
 };
 
 type ImportGroup =
@@ -141,11 +160,16 @@ function isNextFrameworkImport(source: string): boolean {
   return /^next(\/.*)?$/.test(source);
 }
 
-export function sortImports(code: string, options: SortImportsOptions = {}) {
-  const frameworkPriority =
-    options.frameworkPriority && options.frameworkPriority.length > 0
-      ? options.frameworkPriority
-      : DEFAULT_FRAMEWORK_PRIORITY;
+function resolveFrameworkPriority(options: SortImportsOptions): string[] {
+  if (!options.frameworkPriority || options.frameworkPriority.length === 0) {
+    return DEFAULT_FRAMEWORK_PRIORITY;
+  }
+
+  return options.frameworkPriority;
+}
+
+function buildSortedCode(code: string, frameworkPriority: string[]) {
+  const diagnostics: SortDiagnostic[] = [];
 
   const ast = recast.parse(code, {
     parser: {
@@ -175,6 +199,21 @@ export function sortImports(code: string, options: SortImportsOptions = {}) {
       rest.push(node);
     }
   });
+
+  if (imports.length === 0) {
+    diagnostics.push({
+      severity: "info",
+      code: "NO_IMPORTS",
+      message: "No import declarations found; file left unchanged.",
+    });
+
+    return {
+      code,
+      diagnostics,
+      importCount: 0,
+      groupCount: 0,
+    };
+  }
 
   const groupedImports = new Map<ImportGroup, ImportDeclarationNode[]>();
 
@@ -229,12 +268,73 @@ export function sortImports(code: string, options: SortImportsOptions = {}) {
   const restCode = recast.print(ast).code.trimStart();
 
   if (!importsCode) {
-    return restCode;
+    return {
+      code: restCode,
+      diagnostics,
+      importCount: imports.length,
+      groupCount: importBlocks.length,
+    };
   }
 
   if (!restCode) {
-    return `${importsCode}\n`;
+    return {
+      code: `${importsCode}\n`,
+      diagnostics,
+      importCount: imports.length,
+      groupCount: importBlocks.length,
+    };
   }
 
-  return `${importsCode}\n\n${restCode}`;
+  return {
+    code: `${importsCode}\n\n${restCode}`,
+    diagnostics,
+    importCount: imports.length,
+    groupCount: importBlocks.length,
+  };
+}
+
+export function sortImportsResult(
+  code: string,
+  options: SortImportsOptions = {}
+): SortResult {
+  const frameworkPriority = resolveFrameworkPriority(options);
+
+  try {
+    const sorted = buildSortedCode(code, frameworkPriority);
+
+    return {
+      code: sorted.code,
+      changed: sorted.code !== code,
+      diagnostics: sorted.diagnostics,
+      metadata: {
+        importCount: sorted.importCount,
+        groupCount: sorted.groupCount,
+      },
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown parsing error";
+    const diagnostic: SortDiagnostic = {
+      severity: "error",
+      code: "PARSE_ERROR",
+      message,
+    };
+
+    if (options.throwOnParseError) {
+      throw error;
+    }
+
+    return {
+      code,
+      changed: false,
+      diagnostics: [diagnostic],
+      metadata: {
+        importCount: 0,
+        groupCount: 0,
+      },
+    };
+  }
+}
+
+export function sortImports(code: string, options: SortImportsOptions = {}) {
+  return sortImportsResult(code, options).code;
 }
