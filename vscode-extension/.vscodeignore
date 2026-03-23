@@ -1,0 +1,16 @@
+**/.vscode/**
+**/.vscode-test/**
+**/src/**
+**/tests/**
+**/tsconfig.json
+*.map
+.git
+.gitignore
+*.ts
+vitest.config.ts
+node_modules/
+npm-debug.log
+.DS_Store
+.editorconfig
+.eslintrc.js
+.prettierrc.js

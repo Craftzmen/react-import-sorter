@@ -1,6 +1,6 @@
 {
   "name": "react-import-sorter",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Opinionated import sorter for React apps",
   "main": "dist/src/index.js",
   "types": "dist/src/index.d.ts",
@@ -11,9 +11,9 @@
       "default": "./dist/src/index.js"
     },
     "./prettier-plugin": {
-      "types": "./dist/src/prettierPlugin.d.ts",
-      "require": "./dist/src/prettierPlugin.js",
-      "default": "./dist/src/prettierPlugin.js"
+      "types": "./dist/src/prettierPluginCjs.d.ts",
+      "require": "./dist/src/prettierPluginCjs.js",
+      "default": "./dist/src/prettierPluginCjs.js"
     },
     "./eslint-plugin": {
       "types": "./dist/src/eslintPlugin.d.ts",
@@ -33,6 +33,9 @@
     "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
     "build": "npm run clean && tsc",
     "dev": "ts-node bin/cli.ts",
+    "vscode:install": "npm --prefix vscode-extension install",
+    "vscode:build": "npm --prefix vscode-extension run build",
+    "vscode:watch": "npm --prefix vscode-extension run watch",
     "test": "npm run build && vitest run",
     "test:watch": "vitest",
     "release:check": "npm run build && npm test && npm pack --dry-run",

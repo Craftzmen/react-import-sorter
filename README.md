@@ -251,6 +251,19 @@ Supported plugin options:
 1. `importSorterFrameworkPriority`: comma-separated framework priority.
 2. `importSorterThrowOnParseError`: if true, throw on parse errors during preprocessing.
 
+## VS Code Extension (Experimental)
+
+An experimental extension scaffold is available in [vscode-extension/README.md](vscode-extension/README.md).
+
+Quick start:
+
+```bash
+npm run vscode:install
+npm run vscode:build
+```
+
+Then open the `vscode-extension` folder in VS Code and run the extension in an Extension Development Host.
+
 ## Development
 
 ```bash

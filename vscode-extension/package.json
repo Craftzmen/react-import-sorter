@@ -1,0 +1,92 @@
+{
+  "name": "react-import-sorter-vscode",
+  "displayName": "React Import Sorter",
+  "description": "Sort React, Angular, Vue, and Svelte imports using react-import-sorter",
+  "version": "0.1.0",
+  "publisher": "craftzmen",
+  "license": "MIT",
+  "icon": "icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/craftzmen/react-import-sorter"
+  },
+  "bugs": {
+    "url": "https://github.com/craftzmen/react-import-sorter/issues"
+  },
+  "homepage": "https://github.com/craftzmen/react-import-sorter#readme",
+  "keywords": [
+    "import",
+    "sort",
+    "react",
+    "typescript",
+    "javascript",
+    "vue",
+    "svelte",
+    "angular",
+    "formatter",
+    "code-action"
+  ],
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Formatters"
+  ],
+  "activationEvents": [
+    "onCommand:reactImportSorter.sortImports",
+    "onLanguage:javascript",
+    "onLanguage:javascriptreact",
+    "onLanguage:typescript",
+    "onLanguage:typescriptreact",
+    "onLanguage:vue",
+    "onLanguage:svelte"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "reactImportSorter.sortImports",
+        "title": "React Import Sorter: Sort Imports"
+      }
+    ],
+    "codeActionKinds": [
+      "source.fixAll.reactImportSorter"
+    ],
+    "configuration": {
+      "title": "React Import Sorter",
+      "properties": {
+        "reactImportSorter.frameworkPriority": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Framework import order priority, for example: [\"next\", \"react\", \"react-dom\"]"
+        },
+        "reactImportSorter.throwOnParseError": {
+          "type": "boolean",
+          "default": false,
+          "description": "Throw instead of reporting parser errors while sorting imports"
+        },
+        "reactImportSorter.enableFormatOnSave": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable automatic import sorting on file save. Set editor.codeActionsOnSave to include 'source.fixAll.reactImportSorter' to use this feature."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsc -p .",
+    "watch": "tsc -w -p .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "react-import-sorter": "file:.."
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.90.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.0"
+  }
+}
