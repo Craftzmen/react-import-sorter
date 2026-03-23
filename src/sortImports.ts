@@ -336,5 +336,8 @@ export function sortImportsResult(
 }
 
 export function sortImports(code: string, options: SortImportsOptions = {}) {
-  return sortImportsResult(code, options).code;
+  return sortImportsResult(code, {
+    ...options,
+    throwOnParseError: options.throwOnParseError ?? true,
+  }).code;
 }

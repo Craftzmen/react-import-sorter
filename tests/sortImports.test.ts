@@ -80,9 +80,24 @@ describe("sortImportsResult", () => {
     expect(result.changed).toBe(true);
     const lines = result.code.split("\n");
     const importLines = lines.filter((l) => l.match(/^import/));
-    
-    // Type imports from third-party should stay with third-party react
-    expect(importLines[0]).toContain("import");
+
+    // Framework type import (react) should be grouped with the react value import
+    const reactTypeIdx = importLines.findIndex((l) => l.includes("ComponentProps"));
+    const reactValueIdx = importLines.findIndex((l) => l.includes("import React"));
+    expect(reactTypeIdx).toBeGreaterThanOrEqual(0);
+    expect(reactValueIdx).toBeGreaterThanOrEqual(0);
+    // The react type import appears immediately before the react value import (same group)
+    expect(reactTypeIdx).toBe(reactValueIdx - 1);
+
+    // Internal type import (@/types) should come before the internal absolute import (@/hooks)
+    const internalTypeIdx = importLines.findIndex((l) => l.includes("@/types/foo"));
+    const internalAbsoluteIdx = importLines.findIndex((l) => l.includes("@/hooks/useFoo"));
+    expect(internalTypeIdx).toBeGreaterThanOrEqual(0);
+    expect(internalAbsoluteIdx).toBeGreaterThanOrEqual(0);
+    expect(internalTypeIdx).toBeLessThan(internalAbsoluteIdx);
+
+    // The react group should appear before the @/types group
+    expect(reactValueIdx).toBeLessThan(internalTypeIdx);
   });
 
   it("sorts side-effect imports correctly", () => {
